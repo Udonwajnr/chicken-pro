@@ -99,174 +99,307 @@ exports.updateFarm = asyncHandler(async (req, res) => {
 // Used in the onboarding wizard Step 3
 exports.profitPreview = asyncHandler(async (req, res) => {
   const { breed, quantity } = req.query;
+
+  // ── Farmer's custom prices (optional overrides) ──
+  const {
+    customChickPrice,
+    customFeedCost,
+    customDrugCost,
+    customMiscCost,
+    customSellPrice, // per bird (broiler/cockerel) or per crate (layer)
+    customLaborCost,
+  } = req.query;
+
   const qty = parseInt(quantity) || 100;
 
-  const previews = {
+  // ── Our default market prices (Nigeria 2025) ──
+  const defaults = {
     broiler: {
       cycleWeeks: 6,
-      costPerBird: 3500,
-      revenuePerBird: 3600,
-      profitPerBird: 100,
-      costBreakdown: [
-        {
-          item: "Day-old chick",
-          amount: 900,
-          note: "Buy from a reputable hatchery. Poor quality chicks = poor performance.",
-        },
-        {
-          item: "Feed (6 weeks)",
-          amount: 2200,
-          note: "Starter (wk 1-2), Grower (wk 3-4), Finisher (wk 5-6). Feed is your biggest cost.",
-        },
-        {
-          item: "Drugs & vaccines",
-          amount: 300,
-          note: "Newcastle, Gumboro, vitamins. Never skip vaccines — one outbreak can wipe your flock.",
-        },
-        {
-          item: "Miscellaneous",
-          amount: 100,
-          note: "Water, electricity, bedding (wood shavings).",
-        },
-      ],
-      revenueNote:
-        "Broilers sell at 1.8–2kg live weight. Market price is around ₦1,800/kg, so each bird earns roughly ₦3,600.",
-      profitNote:
-        "Profit per bird is small (₦100) — broilers are a volume game. 500 birds = ₦50,000 profit every 6 weeks. The more birds, the better.",
-      tips: [
-        "Buy chicks in batches of at least 100 — smaller batches are not cost-effective.",
-        "Your biggest risk is disease. Stick to the vaccination schedule the app gives you.",
-        "Sell at 6 weeks — every extra week costs you feed money with little weight gain.",
-        "Negotiate feed prices when buying in bulk (10 bags or more).",
-      ],
+      chickPrice: 900,
+      feedCost: 2200,
+      drugCost: 300,
+      miscCost: 100,
+      laborCost: 500,
+      sellPricePerBird: 3800,
+      sellUnit: "per bird",
+      weightKg: 1.9,
+      pricePerKg: 2000,
     },
-
     layer: {
       cycleWeeks: 72,
+      chickPrice: 1200,
+      feedCostPerYear: 5500,
+      drugCost: 800,
+      miscCost: 500,
+      laborCost: 1000,
       eggsPerBirdPerYear: 260,
       eggsPerCrate: 30,
-      pricePerCrate: 1800,
-      costPerBirdPerYear: 8000,
-      costBreakdown: [
-        {
-          item: "Day-old chick (pullet)",
-          amount: 1200,
-          note: "Buy sexed pullets — females only. Unsexed chicks waste money raising males that will not lay.",
-        },
-        {
-          item: "Feed (per year)",
-          amount: 5500,
-          note: "Chick mash (wk 1-8), Grower mash (wk 9-18), Layer mash (wk 19+). Layer mash has high calcium for strong eggshells.",
-        },
-        {
-          item: "Drugs & vaccines",
-          amount: 800,
-          note: "Layers need more vaccines than broilers — longer cycle means more disease exposure.",
-        },
-        {
-          item: "Miscellaneous",
-          amount: 500,
-          note: "Lighting (layers need 16hrs light/day to lay consistently), water, bedding.",
-        },
-      ],
-      revenueNote:
-        "A good layer lays about 260 eggs per year. At 30 eggs per crate and ₦1,800 per crate, each bird earns roughly ₦15,600 per year.",
-      profitNote:
-        "Layers take 18-20 weeks before they start laying — you spend money for 5 months before you earn anything. But once they start, it is daily income for over a year.",
-      tips: [
-        "Do NOT give layer mash before week 18. High calcium before laying age damages their kidneys.",
-        "Maintain 16 hours of light per day — use a bulb on a timer. Darkness reduces egg production.",
-        "Collect eggs 2-3 times daily to reduce breakage and egg eating behaviour.",
-        "Cull (remove) poor layers at month 6 — they eat feed without earning revenue.",
-        "Layers are more profitable than broilers at scale but require more patience.",
-      ],
+      sellPricePerCrate: 1900,
+      sellUnit: "per crate of 30 eggs",
     },
-
     cockerel: {
       cycleWeeks: 12,
-      costPerBird: 5000,
-      revenuePerBird: 5000,
-      profitPerBird: 0,
-      costBreakdown: [
-        {
-          item: "Day-old chick",
-          amount: 500,
-          note: "Cockerel chicks are cheaper than broilers or pullets.",
-        },
-        {
-          item: "Feed (12 weeks)",
-          amount: 3800,
-          note: "Cockerels eat more and for longer than broilers. Feed cost is the main challenge.",
-        },
-        {
-          item: "Drugs & vaccines",
-          amount: 400,
-          note: "Same vaccines as broilers but spread over 12 weeks instead of 6.",
-        },
-        {
-          item: "Miscellaneous",
-          amount: 300,
-          note: "Cockerels are hardier than broilers — lower mortality risk.",
-        },
-      ],
-      revenueNote:
-        "Cockerels sell for ₦4,500–5,000 at 12 weeks normally. But during festive seasons (Christmas, Eid, Easter) prices jump to ₦6,000–8,000 per bird.",
-      profitNote:
-        "At normal prices profit is near zero — cockerels are only highly profitable when timed to festive seasons. Plan your batch start date so birds are ready 1-2 weeks before Christmas or Eid.",
-      tips: [
-        "Time your batches to be ready for Christmas (start in October) or Eid (check date yearly).",
-        "Cockerels are more disease-resistant than broilers — good for beginner farmers.",
-        "They grow slower but buyers pay premium for local (cockerel) chicken taste over broiler.",
-        "Do not sell too early — buyers want fully mature birds, not small ones.",
-      ],
+      chickPrice: 500,
+      feedCost: 3800,
+      drugCost: 400,
+      miscCost: 300,
+      laborCost: 800,
+      sellPricePerBird: 5500,
+      sellUnit: "per bird",
     },
   };
 
-  const data = previews[breed] || previews.broiler;
+  const d = defaults[breed] || defaults.broiler;
+
+  // ── Merge defaults with farmer's custom prices ──
+  // If farmer provides their own price we use it, otherwise we use our default
+  const prices = {
+    chickPrice: parseFloat(customChickPrice) || d.chickPrice,
+    feedCost: parseFloat(customFeedCost) || d.feedCost || d.feedCostPerYear,
+    drugCost: parseFloat(customDrugCost) || d.drugCost,
+    miscCost: parseFloat(customMiscCost) || d.miscCost,
+    laborCost: parseFloat(customLaborCost) || d.laborCost,
+    sellPrice:
+      parseFloat(customSellPrice) ||
+      (breed === "layer" ? d.sellPricePerCrate : d.sellPricePerBird),
+  };
+
+  // ── Cost breakdown (always shown) ──
+  const costBreakdown = [
+    {
+      item: "Day-old chick",
+      defaultPrice: breed === "layer" ? d.chickPrice : d.chickPrice,
+      priceUsed: prices.chickPrice,
+      isCustom: !!customChickPrice,
+      totalForBatch: prices.chickPrice * qty,
+      note:
+        breed === "layer"
+          ? "Buy sexed pullets only — females. Males will not lay."
+          : "Buy from registered hatcheries only — Chi Farms, Zartech, Obasanjo Farms.",
+    },
+    {
+      item:
+        breed === "layer"
+          ? "Feed (full year per bird)"
+          : `Feed (${d.cycleWeeks} weeks per bird)`,
+      defaultPrice: d.feedCost || d.feedCostPerYear,
+      priceUsed: prices.feedCost,
+      isCustom: !!customFeedCost,
+      totalForBatch: prices.feedCost * qty,
+      note: "Feed is 60–70% of your total cost. Buy in bulk to save ₦200–500 per bag.",
+    },
+    {
+      item: "Drugs & vaccines per bird",
+      defaultPrice: d.drugCost,
+      priceUsed: prices.drugCost,
+      isCustom: !!customDrugCost,
+      totalForBatch: prices.drugCost * qty,
+      note: "Never skip vaccines. One Newcastle outbreak can wipe your entire flock in 3 days.",
+    },
+    {
+      item: "Labor per bird",
+      defaultPrice: d.laborCost,
+      priceUsed: prices.laborCost,
+      isCustom: !!customLaborCost,
+      totalForBatch: prices.laborCost * qty,
+      note: "Farm hand, feeding time, water, daily checks. Many beginners forget to count this.",
+    },
+    {
+      item: "Miscellaneous per bird",
+      defaultPrice: d.miscCost,
+      priceUsed: prices.miscCost,
+      isCustom: !!customMiscCost,
+      totalForBatch: prices.miscCost * qty,
+      note: "Bedding (wood shavings), electricity, water, equipment wear.",
+    },
+  ];
+
+  const totalCostPerBird =
+    prices.chickPrice +
+    prices.feedCost +
+    prices.drugCost +
+    prices.laborCost +
+    prices.miscCost;
+  const totalCost = totalCostPerBird * qty;
 
   let preview;
 
   if (breed === "layer") {
-    const totalEggs = qty * data.eggsPerBirdPerYear;
-    const totalCrates = Math.floor(totalEggs / data.eggsPerCrate);
-    const totalRevenue = totalCrates * data.pricePerCrate;
-    const totalCost = qty * data.costPerBirdPerYear;
+    const totalEggs = qty * d.eggsPerBirdPerYear;
+    const totalCrates = Math.floor(totalEggs / d.eggsPerCrate);
+    const totalRevenue = totalCrates * prices.sellPrice;
     const totalProfit = totalRevenue - totalCost;
+    const roi =
+      totalCost > 0
+        ? parseFloat(((totalProfit / totalCost) * 100).toFixed(1))
+        : 0;
+    const profitPerBird = parseFloat((totalProfit / qty).toFixed(2));
+    const breakEvenCrates =
+      totalCost > 0 ? Math.ceil(totalCost / prices.sellPrice) : 0;
 
     preview = {
       breed,
       quantity: qty,
-      cycleWeeks: data.cycleWeeks,
-      costBreakdown: data.costBreakdown,
-      totalCostPerBird: data.costPerBirdPerYear,
+      cycleWeeks: d.cycleWeeks,
+
+      // Prices used — shows which ones are custom vs our defaults
+      pricesUsed: {
+        chickPrice: {
+          value: prices.chickPrice,
+          isCustom: !!customChickPrice,
+          default: d.chickPrice,
+        },
+        feedCostPerYear: {
+          value: prices.feedCost,
+          isCustom: !!customFeedCost,
+          default: d.feedCostPerYear,
+        },
+        drugCost: {
+          value: prices.drugCost,
+          isCustom: !!customDrugCost,
+          default: d.drugCost,
+        },
+        laborCost: {
+          value: prices.laborCost,
+          isCustom: !!customLaborCost,
+          default: d.laborCost,
+        },
+        miscCost: {
+          value: prices.miscCost,
+          isCustom: !!customMiscCost,
+          default: d.miscCost,
+        },
+        sellPricePerCrate: {
+          value: prices.sellPrice,
+          isCustom: !!customSellPrice,
+          default: d.sellPricePerCrate,
+        },
+      },
+
+      // Cost
+      costBreakdown,
+      totalCostPerBird,
       totalCost,
+
+      // Revenue
       eggsPerYear: totalEggs,
       cratesPerYear: totalCrates,
+      sellUnit: d.sellUnit,
+      sellPrice: prices.sellPrice,
       totalRevenue,
+
+      // Profit
       totalProfit,
-      revenueNote: data.revenueNote,
-      profitNote: data.profitNote,
-      tips: data.tips,
-      summary: `With ${qty} layers you could earn approx. ₦${totalProfit.toLocaleString()} per year after costs.`,
+      profitPerBird,
+      roi,
+      isProfit: totalProfit >= 0,
+      breakEvenCrates,
+
+      // Education
+      revenueNote: `A good layer lays ~${d.eggsPerBirdPerYear} eggs per year. At ₦${prices.sellPrice.toLocaleString()} per crate of ${d.eggsPerCrate}, each bird earns roughly ₦${(Math.floor(d.eggsPerBirdPerYear / d.eggsPerCrate) * prices.sellPrice).toLocaleString()} per year in revenue.`,
+      profitNote:
+        "Layers take 18–20 weeks before laying. You spend money for 5 months before earning. But once they start it is daily income for over a year.",
+      tips: [
+        "Do NOT give layer mash before week 18 — high calcium causes kidney damage.",
+        "Maintain 16 hours of light per day — use a timer. Darkness kills production.",
+        "Collect eggs 2–3 times daily to reduce breakage.",
+        "Cull poor layers at month 6 — they eat feed and produce nothing.",
+      ],
+      summary: `With ${qty} layers at your prices, you could earn approx. ₦${totalProfit.toLocaleString()} per year after all costs. ROI: ${roi}%.`,
     };
   } else {
-    const totalCost = qty * data.costPerBird;
-    const totalRevenue = qty * data.revenuePerBird;
-    const totalProfit = qty * data.profitPerBird;
+    // Broiler or Cockerel
+    const totalRevenue = qty * prices.sellPrice;
+    const totalProfit = totalRevenue - totalCost;
+    const roi =
+      totalCost > 0
+        ? parseFloat(((totalProfit / totalCost) * 100).toFixed(1))
+        : 0;
+    const profitPerBird = parseFloat((totalProfit / qty).toFixed(2));
+    const breakEven =
+      prices.sellPrice > 0 ? Math.ceil(totalCost / prices.sellPrice) : 0;
 
     preview = {
       breed,
       quantity: qty,
-      cycleWeeks: data.cycleWeeks,
-      costBreakdown: data.costBreakdown,
-      totalCostPerBird: data.costPerBird,
+      cycleWeeks: d.cycleWeeks,
+
+      // Prices used
+      pricesUsed: {
+        chickPrice: {
+          value: prices.chickPrice,
+          isCustom: !!customChickPrice,
+          default: d.chickPrice,
+        },
+        feedCost: {
+          value: prices.feedCost,
+          isCustom: !!customFeedCost,
+          default: d.feedCost,
+        },
+        drugCost: {
+          value: prices.drugCost,
+          isCustom: !!customDrugCost,
+          default: d.drugCost,
+        },
+        laborCost: {
+          value: prices.laborCost,
+          isCustom: !!customLaborCost,
+          default: d.laborCost,
+        },
+        miscCost: {
+          value: prices.miscCost,
+          isCustom: !!customMiscCost,
+          default: d.miscCost,
+        },
+        sellPricePerBird: {
+          value: prices.sellPrice,
+          isCustom: !!customSellPrice,
+          default: d.sellPricePerBird,
+        },
+      },
+
+      // Cost
+      costBreakdown,
+      totalCostPerBird,
       totalCost,
+
+      // Revenue
+      sellUnit: d.sellUnit,
+      sellPrice: prices.sellPrice,
       totalRevenue,
+
+      // Profit
       totalProfit,
-      revenueNote: data.revenueNote,
-      profitNote: data.profitNote,
-      tips: data.tips,
-      summary: `With ${qty} ${breed}s you could earn approx. ₦${totalProfit.toLocaleString()} every ${data.cycleWeeks} weeks.`,
+      profitPerBird,
+      roi,
+      isProfit: totalProfit >= 0,
+      breakEvenBirds: breakEven,
+
+      // Education
+      revenueNote:
+        breed === "broiler"
+          ? `Broilers sell at 1.8–2kg live weight. At ₦${prices.sellPrice.toLocaleString()} per bird, ${qty} birds earns ₦${totalRevenue.toLocaleString()} total.`
+          : `Cockerels sell for ₦4,500–5,000 normally. During Christmas and Eid prices jump to ₦6,000–8,000. Time your batches to festive seasons.`,
+      profitNote:
+        breed === "broiler"
+          ? `Profit per bird is ₦${profitPerBird.toLocaleString()}. Broilers are a volume game — the more birds, the better. At 500 birds that is ₦${(profitPerBird * 500).toLocaleString()} every 6 weeks.`
+          : `At normal prices cockerel profit is slim. The real money is in festive season pricing. A bird that sells for ₦5,000 in June sells for ₦7,000 in December.`,
+      tips:
+        breed === "broiler"
+          ? [
+              "Buy chicks in batches of at least 100 — smaller batches are not cost-effective.",
+              "Stick to the vaccination schedule — one Newcastle outbreak costs more than a whole year of vaccines.",
+              "Sell at exactly 6 weeks — every extra week costs ₦600–₦800 per bird in feed with little weight gain.",
+              "Negotiate feed prices when buying 10+ bags at a time.",
+            ]
+          : [
+              "Start your batch in October to be ready for Christmas.",
+              "Cockerels are more disease-resistant than broilers — good for beginners.",
+              "Buyers pay a premium for cockerel taste over broiler — market it right.",
+              "Do not sell too early — buyers want fully mature birds.",
+            ],
+      summary: `With ${qty} ${breed}s at your prices, you could earn approx. ₦${totalProfit.toLocaleString()} every ${d.cycleWeeks} weeks. ROI: ${roi}%.`,
     };
   }
 

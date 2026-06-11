@@ -24,6 +24,12 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/farms", require("./routes/farms"));
 app.use("/api/batches", require("./routes/batches"));
 app.use("/api/batches/:id/feed", require("./routes/feed"));
+app.use("/api/batches/:id/health", require("./routes/health"));
+app.use("/api/batches/:id/production", require("./routes/production"));
+app.use("/api/batches/:id/finance", require("./routes/finance"));
+app.use("/api/finance", require("./routes/finance"));
+app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/knowledge', require('./routes/knowledge'));
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
